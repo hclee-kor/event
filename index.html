@@ -3,241 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>IT Team Lucky Draw</title>
+    <title>IT Team Lucky Draw Pro</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
-        /* 1. 기본 전체 화면 설정 */
+        /* ================= 스타일 정의 ================= */
         * { box-sizing: border-box; }
         body {
             background-color: #000;
-            color: #00ff41; /* 해커 그린 */
+            color: #00ff41;
             font-family: 'Courier New', Courier, monospace;
-            margin: 0;
-            padding: 0;
-            width: 100vw;
-            height: 100vh;
+            margin: 0; padding: 0;
+            width: 100vw; height: 100vh;
             overflow: hidden;
             display: flex;
             flex-direction: column;
         }
 
-        /* 2. 상단 타이틀 */
-        header {
+        /* 1. 상단 컨트롤 패널 (카메라 선택 등) */
+        #control-panel {
             flex: 0 0 auto;
-            padding: 1vh 0;
-            text-align: center;
-            background: #0d0d0d;
+            background: #111;
             border-bottom: 1px solid #333;
-            z-index: 10;
-        }
-        h2 {
-            margin: 0;
-            font-size: 3vmin;
-            letter-spacing: 2px;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 20;
         }
 
-        /* 3. 메인 컨텐츠 영역 */
+        select {
+            background: #000;
+            color: #00ff41;
+            border: 1px solid #00ff41;
+            padding: 5px;
+            font-family: inherit;
+            max-width: 50%;
+        }
+
+        button.btn-util {
+            background: #003300;
+            color: #fff;
+            border: 1px solid #00ff41;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* 2. 메인 스캔 영역 */
         main {
             flex: 1;
             display: flex;
             flex-direction: column;
             position: relative;
             width: 100%;
-            height: 100%;
         }
 
-        /* QR 스캐너 영역 */
         #reader {
-            width: 100% !important;
-            flex: 6; 
+            width: 100%;
+            height: 100%;
             background: #000;
-            border-bottom: 2px solid #00ff41;
+            position: relative;
             overflow: hidden;
-            display: flex !important; 
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            position: relative; /* 버튼 배치를 위해 */
         }
 
-        /* =========================================
-           [추가됨] 좌우 반전 버튼 및 효과
-           ========================================= */
-        #mirror-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 100; /* 카메라 위에 떠있어야 함 */
-            background: rgba(0, 0, 0, 0.7);
-            color: #00ff41;
-            border: 1px solid #00ff41;
-            padding: 10px 15px;
-            font-family: 'Courier New', Courier, monospace;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-        #mirror-btn:active {
-            background: #00ff41;
-            color: #000;
+        /* 비디오 요소 스타일 (꽉 차게) */
+        #reader video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* 화면 꽉 채우기 */
         }
 
-        /* 비디오 반전 클래스 */
+        /* 좌우 반전 클래스 (CSS Transform) */
         .mirrored video {
             transform: scaleX(-1) !important;
         }
-        /* ========================================= */
 
-
-        /* 라이브러리 내부 대시보드 강제 중앙 정렬 */
-        #reader__dashboard {
-            width: 100% !important;
-            text-align: center !important;
-            padding-top: 20px;
+        /* 스캔 가이드 라인 (십자선) */
+        .scan-guide {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 250px; height: 250px;
+            border: 2px solid rgba(0, 255, 65, 0.5);
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+            pointer-events: none;
+            z-index: 10;
         }
+        .scan-guide::before, .scan-guide::after {
+            content: ''; position: absolute; background: #00ff41;
+        }
+        .scan-guide::before { top: 50%; left: 10%; width: 80%; height: 2px; } /* 가로선 */
+        .scan-guide::after { left: 50%; top: 10%; height: 80%; width: 2px; } /* 세로선 */
 
-        #reader__dashboard_section_csr, 
-        #reader__dashboard_section_swaplink {
-            display: flex !important;
+
+        /* 3. 결과 화면 (평소엔 숨김) */
+        #result-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000;
+            display: none; /* JS로 제어 */
             flex-direction: column;
+            justify-content: center;
             align-items: center;
-            justify-content: center;
-            width: 100%;
-            margin: 0 auto;
-            text-align: center;
+            z-index: 50;
         }
 
-        #reader__dashboard_section_csr button {
-            background-color: #000 !important;
-            color: #00ff41 !important;
-            border: 2px solid #00ff41 !important;
-            padding: 15px 30px !important;
-            font-size: 1.2rem !important;
-            font-family: 'Courier New', Courier, monospace !important;
-            cursor: pointer;
-            margin-bottom: 10px;
-            box-shadow: 0 0 10px #00ff41;
-        }
+        .log-text { font-size: 4vmin; color: #ccffcc; margin-bottom: 20px; white-space: pre-wrap; text-align: left; width: 80%; }
+        .winner-title { font-size: 5vmin; color: #fff; margin-bottom: 20px; }
+        .winner-name { font-size: 15vmin; font-weight: bold; color: #00ff41; text-shadow: 0 0 30px #00ff41; animation: pulse 0.5s infinite alternate; }
+        .reset-msg { margin-top: 50px; color: #666; font-size: 2vmin; }
 
-        #reader__dashboard_section_swaplink a {
-            color: #00ff41 !important;
-            text-decoration: underline !important;
-            font-size: 1.2rem !important;
-            cursor: pointer;
-            display: inline-block;
-            margin-top: 10px;
-        }
-
-        #reader__filescan_input_label {
-            display: inline-block;
-            margin: 10px auto;
-        }
-
-        #reader video {
-            object-fit: cover;
-            width: 100% !important;
-            height: 100% !important;
-            border-radius: 0 !important;
-        }
-
-        /* 결과 및 로그 영역 */
-        #result-area {
-            flex: 4; 
-            width: 100%;
-            background-color: #001100;
-            padding: 4vmin;
-            border-top: 1px dashed #004400;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            transition: all 0.5s ease;
-        }
-
-        body.scan-finished #reader { display: none !important; }
-        body.scan-finished #result-area {
-            flex: 1; 
-            justify-content: center;
-            background-color: #000;
-        }
-
-        /* 텍스트 스타일 */
-        .log-text { 
-            font-size: 4vmin;
-            line-height: 1.5;
-            color: #ccffcc;
-            white-space: pre-wrap;
-        }
-
-        .winner-container {
-            display: none;
-            text-align: center;
-            width: 100%;
-        }
+        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.05); } }
         
-        .winner-title {
-            font-size: 6vmin;
-            color: #fff;
-            margin-bottom: 5vh;
-            text-shadow: 0 0 10px rgba(255,255,255,0.5);
-        }
-
-        .winner-name { 
-            font-size: 15vmin;
-            font-weight: bold; 
-            color: #00ff41;
-            text-shadow: 0 0 50px #00ff41;
-            animation: pulse 0.8s infinite alternate;
-        }
-
-        #progress-container {
-            width: 100%;
-            height: 3vh;
-            background: #111;
-            border: 2px solid #00ff41;
-            margin-top: 2vh;
-            display: none;
-        }
-        #progress-bar {
-            width: 0%;
-            height: 100%;
-            background-color: #00ff41;
-            box-shadow: 0 0 20px #00ff41;
-            transition: width 0.2s linear;
-        }
-
-        .cursor { animation: blink 1s step-end infinite; }
-        @keyframes blink { 50% { opacity: 0; } }
-        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
+        /* 진행률 바 */
+        #progress-bar-container { width: 80%; height: 10px; background: #222; margin-top: 20px; display: none; }
+        #progress-bar { width: 0%; height: 100%; background: #00ff41; transition: width 0.1s; }
 
     </style>
 </head>
 <body>
 
-    <header>
-        <h2>>> SYSTEM_ACCESS: LUCKY_DRAW</h2>
-    </header>
+    <div id="control-panel">
+        <select id="camera-select" onchange="startScanner(this.value)">
+            <option value="" disabled selected>Loading Cameras...</option>
+        </select>
+        <button class="btn-util" onclick="toggleMirror()">⇄ 반전</button>
+    </div>
 
     <main>
         <div id="reader">
-            <button id="mirror-btn" onclick="toggleMirror()">좌우 반전</button>
-        </div>
-        
-        <div id="result-area">
-            <div id="log" class="log-text">Waiting for Input...<span class="cursor">_</span></div>
-            
-            <div id="progress-container">
-                <div id="progress-bar"></div>
-            </div>
+            <div class="scan-guide"></div> </div>
 
-            <div id="winner-box" class="winner-container">
-                <div class="winner-title">🎉 당첨을 축하합니다! 🎉</div>
+        <div id="result-overlay">
+            <div id="log-area" class="log-text"></div>
+            <div id="progress-bar-container"><div id="progress-bar"></div></div>
+            
+            <div id="final-result" style="display:none; text-align:center;">
+                <div class="winner-title">🎉 WINNER 🎉</div>
                 <div id="winner-name" class="winner-name"></div>
-                <div style="margin-top: 5vh; color: #666; font-size: 3vmin;">(화면을 터치하면 초기화됩니다)</div>
+                <div class="reset-msg">터치하여 초기화</div>
             </div>
         </div>
     </main>
 
     <script>
+        // ================= 데이터 설정 =================
         const participants = {
             1: "김철수", 2: "이영희", 3: "박민수", 4: "최지우", 5: "정수혁",
             6: "강하늘", 7: "조미란", 8: "윤성호", 9: "임나연", 10: "한지민",
@@ -245,111 +155,157 @@
             16: "전지현", 17: "현빈", 18: "손예진", 19: "공유"
         };
 
-        let isScanning = true;
-        let html5QrcodeScanner;
+        // 전역 변수
+        let html5QrCode;
+        let isScanning = false;
+        let currentCameraId = null;
 
-        // 좌우 반전 토글 함수
-        function toggleMirror() {
-            const readerDiv = document.getElementById('reader');
-            readerDiv.classList.toggle('mirrored');
+        // 1. 초기화 및 카메라 목록 불러오기
+        document.addEventListener('DOMContentLoaded', () => {
+            html5QrCode = new Html5Qrcode("reader");
+            
+            // 기기의 카메라 목록 가져오기
+            Html5Qrcode.getCameras().then(devices => {
+                const select = document.getElementById('camera-select');
+                select.innerHTML = ""; // 초기화
+
+                if (devices && devices.length) {
+                    // 카메라 목록을 드롭다운에 추가
+                    devices.forEach((device, index) => {
+                        const option = document.createElement('option');
+                        option.value = device.id;
+                        // 라벨이 없으면 'Camera 0', 'Camera 1' 등으로 표시
+                        option.text = device.label || `Camera ${index} (${device.id.substr(0,5)}...)`;
+                        select.appendChild(option);
+                    });
+
+                    // [중요] 가장 마지막 카메라(보통 고성능 후면)를 기본값으로 선택 시도
+                    const lastCamera = devices[devices.length - 1].id;
+                    startScanner(lastCamera);
+                    select.value = lastCamera;
+                } else {
+                    select.innerHTML = "<option>No Camera Found</option>";
+                    alert("카메라를 찾을 수 없습니다.");
+                }
+            }).catch(err => {
+                console.error(err);
+                alert("카메라 권한을 허용해주세요.");
+            });
+        });
+
+        // 2. 스캐너 시작 함수 (해상도 강제 설정)
+        function startScanner(cameraId) {
+            if(isScanning) {
+                html5QrCode.stop().then(() => {
+                    isScanning = false;
+                    startScanner(cameraId); // 중단 후 재시작
+                });
+                return;
+            }
+
+            currentCameraId = cameraId;
+            
+            const config = {
+                fps: 10,
+                qrbox: { width: 300, height: 300 },
+                // [핵심] 고화질(HD) 강제 요청 -> 초점 문제 해결
+                videoConstraints: {
+                    deviceId: { exact: cameraId },
+                    width: { min: 1280, ideal: 1920 }, // HD 이상
+                    height: { min: 720, ideal: 1080 },
+                    focusMode: "continuous" // 자동 초점 요청
+                }
+            };
+
+            html5QrCode.start(
+                cameraId, 
+                config, 
+                onScanSuccess, 
+                (errorMessage) => { /* 스캔 실패 로그 무시 */ }
+            ).then(() => {
+                isScanning = true;
+                // 미러링 상태 확인 후 재적용
+                updateMirrorStyle();
+            }).catch(err => {
+                console.error("카메라 시작 실패", err);
+            });
         }
 
+        // 3. 좌우 반전 토글
+        function toggleMirror() {
+            const reader = document.getElementById('reader');
+            reader.classList.toggle('mirrored');
+        }
+        
+        // 스캐너 재시작 시에도 미러링 유지용
+        function updateMirrorStyle() {
+            const reader = document.getElementById('reader');
+            if(reader.classList.contains('mirrored')) {
+                // 비디오 요소가 생성된 후 다시 확인
+                const video = document.querySelector('#reader video');
+                if(video) video.style.transform = "scaleX(-1)";
+            }
+        }
+
+        // 4. 스캔 성공 시 로직
         function onScanSuccess(decodedText, decodedResult) {
             if (!isScanning) return;
 
             const id = parseInt(decodedText);
-            
             if (participants[id]) {
-                isScanning = false; 
-                document.body.classList.add('scan-finished');
-                
-                if(html5QrcodeScanner) {
-                    html5QrcodeScanner.clear();
-                }
-
-                runDecodingEffect(id, participants[id]);
+                // 스캔 중지
+                isScanning = false;
+                html5QrCode.stop().then(() => {
+                    showResultEffect(id, participants[id]);
+                });
             }
         }
 
-        function runDecodingEffect(id, name) {
-            const logDiv = document.getElementById('log');
-            const progressContainer = document.getElementById('progress-container');
-            const progressBar = document.getElementById('progress-bar');
-            
-            progressContainer.style.display = 'block';
-            logDiv.innerHTML = ""; 
-
-            const steps = [
-                `>> TARGET_ACQUIRED: ID [${id}]`,
-                `>> DECRYPTING SECURE TOKEN...`,
-                `>> VERIFYING INTEGRITY...`,
-                `>> ACCESSING DATABASE...`,
-                `>> FETCHING USER PROFILE...`,
-                `>> MATCH CONFIRMED.`
-            ];
-
-            let currentStep = 0;
-            const totalSteps = steps.length;
-            
-            const interval = setInterval(() => {
-                if (currentStep < totalSteps) {
-                    logDiv.innerHTML += steps[currentStep] + "<br>";
-                    const percentage = Math.round(((currentStep + 1) / totalSteps) * 100);
-                    progressBar.style.width = percentage + "%";
-                    currentStep++;
-                } else {
-                    clearInterval(interval);
-                    setTimeout(() => showWinner(name), 500);
-                }
-            }, 300);
-        }
-
-        function showWinner(name) {
-            const logDiv = document.getElementById('log');
-            const progressContainer = document.getElementById('progress-container');
-            const winnerBox = document.getElementById('winner-box');
+        // 5. 결과 연출 (매트릭스 효과)
+        function showResultEffect(id, name) {
+            const overlay = document.getElementById('result-overlay');
+            const logArea = document.getElementById('log-area');
+            const progBarContainer = document.getElementById('progress-bar-container');
+            const progBar = document.getElementById('progress-bar');
+            const finalResult = document.getElementById('final-result');
             const winnerName = document.getElementById('winner-name');
 
-            logDiv.style.display = 'none';
-            progressContainer.style.display = 'none';
+            overlay.style.display = 'flex';
+            logArea.innerHTML = '';
+            progBarContainer.style.display = 'block';
+            finalResult.style.display = 'none';
 
-            winnerName.innerText = name;
-            winnerBox.style.display = 'block';
+            const logs = [
+                `>> TARGET ID DETECTED: [ ${id} ]`,
+                `>> CONNECTING TO SECURE SERVER...`,
+                `>> VERIFYING HASH KEY... OK`,
+                `>> DECRYPTING DATA STREAM...`,
+                `>> MATCH FOUND IN DATABASE.`
+            ];
 
-            setTimeout(() => {
-                document.body.onclick = function() {
-                    if(confirm("다음 추첨을 진행하시겠습니까?")) {
-                        location.reload(); 
-                    }
-                };
-            }, 1000);
-        }
-
-        function onScanFailure(error) {}
-
-        const config = { 
-            fps: 10, 
-            qrbox: { width: 300, height: 300 }, 
-            aspectRatio: 1.0,
+            let step = 0;
+            const totalSteps = logs.length;
             
-            // 핵심: 비디오 해상도 제약 조건 추가
-            videoConstraints: {
-                width: { min: 640, ideal: 1920, max: 3840 }, // 가능한 높은 해상도 요청
-                height: { min: 480, ideal: 1080, max: 2160 },
-                facingMode: "environment", // 후면 카메라
-                focusMode: "continuous"    // 자동 초점 (지원 기기만)
-            },
-
-            // 안드로이드 네이티브 스캔 기능 (이것도 유지)
-            experimentalFeatures: {
-                useBarCodeDetectorIfSupported: true
-            }
-        };
-        
-        html5QrcodeScanner = new Html5QrcodeScanner("reader", config, false);
-        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-
+            const interval = setInterval(() => {
+                if(step < totalSteps) {
+                    logArea.innerHTML += logs[step] + "<br>";
+                    progBar.style.width = ((step + 1) / totalSteps * 100) + "%";
+                    step++;
+                } else {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        logArea.style.display = 'none';
+                        progBarContainer.style.display = 'none';
+                        
+                        winnerName.innerText = name;
+                        finalResult.style.display = 'block';
+                        
+                        // 화면 터치 시 리셋 이벤트
+                        overlay.onclick = () => window.location.reload();
+                    }, 500);
+                }
+            }, 400);
+        }
     </script>
 </body>
 </html>
-
