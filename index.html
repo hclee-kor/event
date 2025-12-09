@@ -37,7 +37,7 @@
             border: 1px solid #00ff41;
             padding: 5px;
             font-family: inherit;
-            max-width: 60%; /* 너비 조금 확보 */
+            max-width: 60%;
         }
 
         button.btn-util {
@@ -72,12 +72,8 @@
             object-fit: cover; 
         }
 
-        /* 좌우 반전 클래스 */
-        .mirrored video {
-            transform: scaleX(-1) !important;
-        }
+        .mirrored video { transform: scaleX(-1) !important; }
 
-        /* 스캔 가이드 라인 */
         .scan-guide {
             position: absolute;
             top: 50%; left: 50%;
@@ -95,7 +91,7 @@
         .scan-guide::after { left: 50%; top: 10%; height: 80%; width: 2px; }
 
 
-        /* 3. 결과 화면 */
+        /* 3. 결과 화면 (수정됨: 여백 최소화 및 크기 확대) */
         #result-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -105,14 +101,37 @@
             justify-content: center;
             align-items: center;
             z-index: 50;
+            padding: 2vmin; /* 전체 패딩 최소화 */
         }
 
         .log-text { font-size: 4vmin; color: #ccffcc; margin-bottom: 20px; white-space: pre-wrap; text-align: left; width: 80%; }
-        .winner-title { font-size: 5vmin; color: #fff; margin-bottom: 20px; }
-        .winner-name { font-size: 15vmin; font-weight: bold; color: #00ff41; text-shadow: 0 0 30px #00ff41; animation: pulse 0.5s infinite alternate; }
-        .reset-msg { margin-top: 50px; color: #666; font-size: 2vmin; }
+        
+        /* [수정] 타이틀 크기 키우고 여백 줄임 */
+        .winner-title { 
+            font-size: 8vmin; 
+            color: #fff; 
+            margin-bottom: 2vmin; 
+        }
+        
+        /* [수정] 이름 크기 초대형화, 줄간격 조정 */
+        .winner-name { 
+            font-size: 30vmin; /* 훨씬 커짐 */
+            line-height: 1.1;
+            font-weight: bold; 
+            color: #00ff41; 
+            text-shadow: 0 0 40px #00ff41; 
+            animation: pulse 0.5s infinite alternate;
+            word-break: keep-all; /* 이름이 길어도 단어 유지 */
+        }
+        
+        /* [수정] 안내문구 크기 키우고 여백 줄임 */
+        .reset-msg { 
+            margin-top: 5vmin; 
+            color: #888; 
+            font-size: 4vmin; 
+        }
 
-        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.05); } }
+        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.02); } }
         
         #progress-bar-container { width: 80%; height: 10px; background: #222; margin-top: 20px; display: none; }
         #progress-bar { width: 0%; height: 100%; background: #00ff41; transition: width 0.1s; }
@@ -137,8 +156,8 @@
             <div id="log-area" class="log-text"></div>
             <div id="progress-bar-container"><div id="progress-bar"></div></div>
             
-            <div id="final-result" style="display:none; text-align:center;">
-                <div class="winner-title">🎉 당첨을 축하드립니다! 🎉</div>
+            <div id="final-result" style="display:none; text-align:center; width: 100%;">
+                <div class="winner-title">🎉 WINNER 🎉</div>
                 <div id="winner-name" class="winner-name"></div>
                 <div class="reset-msg">터치하여 다음 추첨 진행</div>
             </div>
@@ -146,7 +165,7 @@
     </main>
 
     <script>
-        // ================= 데이터 설정 (수정됨) =================
+        // ================= 데이터 설정 =================
         const participants = {
             1: "이혜정", 2: "황민주", 3: "안인경", 4: "최윤영", 5: "김근만",
             6: "이선국", 7: "윤일석", 8: "송주현", 9: "김태오", 10: "이근호",
@@ -167,19 +186,16 @@
         document.addEventListener('DOMContentLoaded', () => {
             html5QrCode = new Html5Qrcode("reader");
             
-            // 저장된 미러링 설정 불러오기
             const savedMirror = localStorage.getItem(STORAGE_KEY_MIRROR);
             if (savedMirror === 'true') {
                 document.getElementById('reader').classList.add('mirrored');
             }
 
-            // 기기의 카메라 목록 가져오기
             Html5Qrcode.getCameras().then(devices => {
                 const select = document.getElementById('camera-select');
                 select.innerHTML = ""; 
 
                 if (devices && devices.length) {
-                    // 저장된 카메라 ID 불러오기
                     const savedCameraId = localStorage.getItem(STORAGE_KEY_CAMERA);
                     let targetCameraId = null;
 
@@ -189,18 +205,15 @@
                         option.text = device.label || `Camera ${index} (${device.id.substr(0,5)}...)`;
                         select.appendChild(option);
 
-                        // 저장된 카메라가 현재 목록에 있다면 그걸 타겟으로 설정
                         if (savedCameraId && device.id === savedCameraId) {
                             targetCameraId = savedCameraId;
                         }
                     });
 
-                    // 저장된 게 없거나 유효하지 않으면 마지막 카메라(보통 후면) 사용
                     if (!targetCameraId) {
                         targetCameraId = devices[devices.length - 1].id;
                     }
 
-                    // 카메라 시작
                     select.value = targetCameraId;
                     startScanner(targetCameraId);
 
@@ -216,7 +229,6 @@
 
         // 2. 스캐너 시작 함수
         function startScanner(cameraId) {
-            // [기억 기능] 선택한 카메라 ID 저장
             localStorage.setItem(STORAGE_KEY_CAMERA, cameraId);
 
             if(isScanning) {
@@ -257,7 +269,6 @@
         function toggleMirror() {
             const reader = document.getElementById('reader');
             const isMirrored = reader.classList.toggle('mirrored');
-            // [기억 기능] 반전 상태 저장
             localStorage.setItem(STORAGE_KEY_MIRROR, isMirrored);
         }
         
@@ -293,10 +304,10 @@
 
             overlay.style.display = 'flex';
             logArea.innerHTML = '';
-            logArea.style.display = 'block'; // 재추첨 시 다시 보이게
+            logArea.style.display = 'block'; 
             progBarContainer.style.display = 'block';
             finalResult.style.display = 'none';
-            progBar.style.width = '0%'; // 바 초기화
+            progBar.style.width = '0%'; 
 
             const logs = [
                 `>> TARGET ID DETECTED: [ ${id} ]`,
@@ -323,21 +334,18 @@
                         winnerName.innerText = name;
                         finalResult.style.display = 'block';
                         
-                        // [수정됨] 화면 터치 시 '새로고침' 하지 않고 '재시작' (설정 유지)
                         overlay.onclick = resetGame;
                     }, 500);
                 }
             }, 400);
         }
 
-        // 6. [추가됨] 게임 재시작 (Soft Reset)
+        // 6. 게임 재시작 (Soft Reset)
         function resetGame() {
-            // 오버레이 숨김
             const overlay = document.getElementById('result-overlay');
             overlay.style.display = 'none';
-            overlay.onclick = null; // 이벤트 제거
+            overlay.onclick = null; 
 
-            // 즉시 카메라 재시작 (선택된 카메라 유지)
             if (currentCameraId) {
                 startScanner(currentCameraId);
             }
