@@ -46,30 +46,56 @@
             height: 100%;
         }
 
-        /* =========================================
-           [수정됨] QR 스캐너 라이브러리 강제 스타일링
-           ========================================= */
+        /* QR 스캐너 영역 */
         #reader {
             width: 100% !important;
-            flex: 6; /* 화면의 60% */
+            flex: 6; 
             background: #000;
             border-bottom: 2px solid #00ff41;
             overflow: hidden;
-            /* 내부 요소 중앙 정렬을 위한 Flex 설정 */
             display: flex !important; 
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            position: relative; /* 버튼 배치를 위해 */
         }
 
-        /* 라이브러리 내부 대시보드(버튼 영역) 중앙 정렬 강제 */
+        /* =========================================
+           [추가됨] 좌우 반전 버튼 및 효과
+           ========================================= */
+        #mirror-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100; /* 카메라 위에 떠있어야 함 */
+            background: rgba(0, 0, 0, 0.7);
+            color: #00ff41;
+            border: 1px solid #00ff41;
+            padding: 10px 15px;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        #mirror-btn:active {
+            background: #00ff41;
+            color: #000;
+        }
+
+        /* 비디오 반전 클래스 */
+        .mirrored video {
+            transform: scaleX(-1) !important;
+        }
+        /* ========================================= */
+
+
+        /* 라이브러리 내부 대시보드 강제 중앙 정렬 */
         #reader__dashboard {
             width: 100% !important;
             text-align: center !important;
             padding-top: 20px;
         }
 
-        /* 권한 요청 버튼 및 파일 스캔 링크가 들어있는 섹션 */
         #reader__dashboard_section_csr, 
         #reader__dashboard_section_swaplink {
             display: flex !important;
@@ -81,7 +107,6 @@
             text-align: center;
         }
 
-        /* "Request Camera Permissions" 버튼 스타일링 */
         #reader__dashboard_section_csr button {
             background-color: #000 !important;
             color: #00ff41 !important;
@@ -94,7 +119,6 @@
             box-shadow: 0 0 10px #00ff41;
         }
 
-        /* "Scan an Image File" 링크 스타일링 */
         #reader__dashboard_section_swaplink a {
             color: #00ff41 !important;
             text-decoration: underline !important;
@@ -104,13 +128,11 @@
             margin-top: 10px;
         }
 
-        /* 파일 선택 후 나오는 내용들 중앙 정렬 */
         #reader__filescan_input_label {
             display: inline-block;
             margin: 10px auto;
         }
 
-        /* 카메라 화면 꽉 차게 */
         #reader video {
             object-fit: cover;
             width: 100% !important;
@@ -118,11 +140,9 @@
             border-radius: 0 !important;
         }
 
-        /* ========================================= */
-
         /* 결과 및 로그 영역 */
         #result-area {
-            flex: 4; /* 화면의 40% */
+            flex: 4; 
             width: 100%;
             background-color: #001100;
             padding: 4vmin;
@@ -133,10 +153,9 @@
             transition: all 0.5s ease;
         }
 
-        /* 스캔 완료 시 스타일 */
         body.scan-finished #reader { display: none !important; }
         body.scan-finished #result-area {
-            flex: 1; /* 전체 화면 */
+            flex: 1; 
             justify-content: center;
             background-color: #000;
         }
@@ -149,7 +168,6 @@
             white-space: pre-wrap;
         }
 
-        /* 당첨자 화면 스타일 */
         .winner-container {
             display: none;
             text-align: center;
@@ -171,7 +189,6 @@
             animation: pulse 0.8s infinite alternate;
         }
 
-        /* 진행률 바 */
         #progress-container {
             width: 100%;
             height: 3vh;
@@ -201,7 +218,9 @@
     </header>
 
     <main>
-        <div id="reader"></div>
+        <div id="reader">
+            <button id="mirror-btn" onclick="toggleMirror()">좌우 반전</button>
+        </div>
         
         <div id="result-area">
             <div id="log" class="log-text">Waiting for Input...<span class="cursor">_</span></div>
@@ -228,6 +247,12 @@
 
         let isScanning = true;
         let html5QrcodeScanner;
+
+        // 좌우 반전 토글 함수
+        function toggleMirror() {
+            const readerDiv = document.getElementById('reader');
+            readerDiv.classList.toggle('mirrored');
+        }
 
         function onScanSuccess(decodedText, decodedResult) {
             if (!isScanning) return;
@@ -304,11 +329,12 @@
 
         const config = { 
             fps: 10, 
-            qrbox: { width: 300, height: 300 },
-            aspectRatio: 1.0 
+            qrbox: { width: 300, height: 300 }, // 인식 영역 최적화
+            aspectRatio: 1.0,
+            // [중요] 안드로이드 네이티브 바코드 감지기 사용 (속도 향상)
             experimentalFeatures: {
-		        useBarCodeDetectorIfSupported: true
-	        } 
+                useBarCodeDetectorIfSupported: true
+            }
         };
         
         html5QrcodeScanner = new Html5QrcodeScanner("reader", config, false);
@@ -316,5 +342,4 @@
 
     </script>
 </body>
-
 </html>
