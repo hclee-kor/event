@@ -101,27 +101,30 @@
             justify-content: center;
             align-items: center;
             z-index: 50;
-            padding: 2vmin; /* 전체 패딩 최소화 */
+            padding: 1vmin; /* 전체 패딩 최소화 */
         }
 
-        .log-text { font-size: 4vmin; color: #ccffcc; margin-bottom: 20px; white-space: pre-wrap; text-align: left; width: 80%; }
+        .log-text { font-size: 6vmin; color: #ccffcc; margin-bottom: 20px; white-space: pre-wrap; text-align: left; width: 80%; }
         
         /* [수정] 타이틀 크기 키우고 여백 줄임 */
         .winner-title { 
             font-size: 8vmin; 
             color: #fff; 
             margin-bottom: 2vmin; 
+            margin-top: 2vmin;
         }
         
         /* [수정] 이름 크기 초대형화, 줄간격 조정 */
         .winner-name { 
-            font-size: 30vmin; /* 훨씬 커짐 */
+            font-size: 40vmin; /* 훨씬 커짐 */
             line-height: 1.1;
             font-weight: bold; 
             color: #00ff41; 
             text-shadow: 0 0 40px #00ff41; 
             animation: pulse 0.5s infinite alternate;
             word-break: keep-all; /* 이름이 길어도 단어 유지 */
+            width: 100%;      /* [수정됨] 가로폭 100% 사용 */
+            margin: 0;        /* [수정됨] 주변 여백 제거 */
         }
         
         /* [수정] 안내문구 크기 키우고 여백 줄임 */
