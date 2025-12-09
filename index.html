@@ -3,11 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#000000">
-
     <title>IT Team Lucky Draw Pro</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
@@ -42,16 +37,25 @@
             border: 1px solid #00ff41;
             padding: 5px;
             font-family: inherit;
-            max-width: 60%;
+            max-width: 40%; /* 버튼 공간 확보를 위해 줄임 */
+            height: 35px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
         }
 
         button.btn-util {
             background: #003300;
             color: #fff;
             border: 1px solid #00ff41;
-            padding: 5px 15px;
+            padding: 0 10px;
+            height: 35px;
             cursor: pointer;
             font-weight: bold;
+            font-size: 14px;
+            white-space: nowrap;
         }
 
         /* 2. 메인 스캔 영역 */
@@ -152,7 +156,11 @@
         <select id="camera-select" onchange="startScanner(this.value)">
             <option value="" disabled selected>Loading Cameras...</option>
         </select>
-        <button class="btn-util" onclick="toggleMirror()">⇄ 반전</button>
+        
+        <div class="btn-group">
+            <button class="btn-util" onclick="toggleMirror()">⇄ 반전</button>
+            <button class="btn-util" onclick="toggleFullScreen()">⛶ 전체화면</button>
+        </div>
     </div>
 
     <main>
@@ -288,7 +296,20 @@
             }
         }
 
-        // 4. 스캔 성공
+        // [추가됨] 전체 화면 토글 함수 (가장 강력한 방법)
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch((e) => {
+                    console.log(e);
+                    alert("이 기기에서는 전체화면을 지원하지 않거나 권한이 없습니다.");
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
         function onScanSuccess(decodedText, decodedResult) {
             if (!isScanning) return;
 
