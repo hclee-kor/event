@@ -19,7 +19,7 @@
             flex-direction: column;
         }
 
-        /* 1. 상단 컨트롤 패널 (카메라 선택 등) */
+        /* 1. 상단 컨트롤 패널 */
         #control-panel {
             flex: 0 0 auto;
             background: #111;
@@ -37,7 +37,7 @@
             border: 1px solid #00ff41;
             padding: 5px;
             font-family: inherit;
-            max-width: 50%;
+            max-width: 60%; /* 너비 조금 확보 */
         }
 
         button.btn-util {
@@ -66,19 +66,18 @@
             overflow: hidden;
         }
 
-        /* 비디오 요소 스타일 (꽉 차게) */
         #reader video {
             width: 100%;
             height: 100%;
-            object-fit: cover; /* 화면 꽉 채우기 */
+            object-fit: cover; 
         }
 
-        /* 좌우 반전 클래스 (CSS Transform) */
+        /* 좌우 반전 클래스 */
         .mirrored video {
             transform: scaleX(-1) !important;
         }
 
-        /* 스캔 가이드 라인 (십자선) */
+        /* 스캔 가이드 라인 */
         .scan-guide {
             position: absolute;
             top: 50%; left: 50%;
@@ -92,16 +91,16 @@
         .scan-guide::before, .scan-guide::after {
             content: ''; position: absolute; background: #00ff41;
         }
-        .scan-guide::before { top: 50%; left: 10%; width: 80%; height: 2px; } /* 가로선 */
-        .scan-guide::after { left: 50%; top: 10%; height: 80%; width: 2px; } /* 세로선 */
+        .scan-guide::before { top: 50%; left: 10%; width: 80%; height: 2px; }
+        .scan-guide::after { left: 50%; top: 10%; height: 80%; width: 2px; }
 
 
-        /* 3. 결과 화면 (평소엔 숨김) */
+        /* 3. 결과 화면 */
         #result-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             background: #000;
-            display: none; /* JS로 제어 */
+            display: none; 
             flex-direction: column;
             justify-content: center;
             align-items: center;
@@ -115,7 +114,6 @@
 
         @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.05); } }
         
-        /* 진행률 바 */
         #progress-bar-container { width: 80%; height: 10px; background: #222; margin-top: 20px; display: none; }
         #progress-bar { width: 0%; height: 100%; background: #00ff41; transition: width 0.1s; }
 
@@ -132,7 +130,8 @@
 
     <main>
         <div id="reader">
-            <div class="scan-guide"></div> </div>
+            <div class="scan-guide"></div> 
+        </div>
 
         <div id="result-overlay">
             <div id="log-area" class="log-text"></div>
@@ -141,13 +140,13 @@
             <div id="final-result" style="display:none; text-align:center;">
                 <div class="winner-title">🎉 WINNER 🎉</div>
                 <div id="winner-name" class="winner-name"></div>
-                <div class="reset-msg">터치하여 초기화</div>
+                <div class="reset-msg">터치하여 다음 추첨 진행</div>
             </div>
         </div>
     </main>
 
     <script>
-        // ================= 데이터 설정 =================
+        // ================= 데이터 설정 (수정됨) =================
         const participants = {
             1: "이혜정", 2: "황민주", 3: "안인경", 4: "최윤영", 5: "김근만",
             6: "이선국", 7: "윤일석", 8: "송주현", 9: "김태오", 10: "이근호",
@@ -160,29 +159,51 @@
         let isScanning = false;
         let currentCameraId = null;
 
-        // 1. 초기화 및 카메라 목록 불러오기
+        // [기억 기능] 로컬 스토리지 키 이름
+        const STORAGE_KEY_CAMERA = 'luckyDraw_cameraId';
+        const STORAGE_KEY_MIRROR = 'luckyDraw_isMirrored';
+
+        // 1. 초기화 및 설정 불러오기
         document.addEventListener('DOMContentLoaded', () => {
             html5QrCode = new Html5Qrcode("reader");
             
+            // 저장된 미러링 설정 불러오기
+            const savedMirror = localStorage.getItem(STORAGE_KEY_MIRROR);
+            if (savedMirror === 'true') {
+                document.getElementById('reader').classList.add('mirrored');
+            }
+
             // 기기의 카메라 목록 가져오기
             Html5Qrcode.getCameras().then(devices => {
                 const select = document.getElementById('camera-select');
-                select.innerHTML = ""; // 초기화
+                select.innerHTML = ""; 
 
                 if (devices && devices.length) {
-                    // 카메라 목록을 드롭다운에 추가
+                    // 저장된 카메라 ID 불러오기
+                    const savedCameraId = localStorage.getItem(STORAGE_KEY_CAMERA);
+                    let targetCameraId = null;
+
                     devices.forEach((device, index) => {
                         const option = document.createElement('option');
                         option.value = device.id;
-                        // 라벨이 없으면 'Camera 0', 'Camera 1' 등으로 표시
                         option.text = device.label || `Camera ${index} (${device.id.substr(0,5)}...)`;
                         select.appendChild(option);
+
+                        // 저장된 카메라가 현재 목록에 있다면 그걸 타겟으로 설정
+                        if (savedCameraId && device.id === savedCameraId) {
+                            targetCameraId = savedCameraId;
+                        }
                     });
 
-                    // [중요] 가장 마지막 카메라(보통 고성능 후면)를 기본값으로 선택 시도
-                    const lastCamera = devices[devices.length - 1].id;
-                    startScanner(lastCamera);
-                    select.value = lastCamera;
+                    // 저장된 게 없거나 유효하지 않으면 마지막 카메라(보통 후면) 사용
+                    if (!targetCameraId) {
+                        targetCameraId = devices[devices.length - 1].id;
+                    }
+
+                    // 카메라 시작
+                    select.value = targetCameraId;
+                    startScanner(targetCameraId);
+
                 } else {
                     select.innerHTML = "<option>No Camera Found</option>";
                     alert("카메라를 찾을 수 없습니다.");
@@ -193,12 +214,15 @@
             });
         });
 
-        // 2. 스캐너 시작 함수 (해상도 강제 설정)
+        // 2. 스캐너 시작 함수
         function startScanner(cameraId) {
+            // [기억 기능] 선택한 카메라 ID 저장
+            localStorage.setItem(STORAGE_KEY_CAMERA, cameraId);
+
             if(isScanning) {
                 html5QrCode.stop().then(() => {
                     isScanning = false;
-                    startScanner(cameraId); // 중단 후 재시작
+                    startScanner(cameraId); 
                 });
                 return;
             }
@@ -208,12 +232,11 @@
             const config = {
                 fps: 10,
                 qrbox: { width: 300, height: 300 },
-                // [핵심] 고화질(HD) 강제 요청 -> 초점 문제 해결
                 videoConstraints: {
                     deviceId: { exact: cameraId },
-                    width: { min: 1280, ideal: 1920 }, // HD 이상
+                    width: { min: 1280, ideal: 1920 },
                     height: { min: 720, ideal: 1080 },
-                    focusMode: "continuous" // 자동 초점 요청
+                    focusMode: "continuous"
                 }
             };
 
@@ -221,39 +244,37 @@
                 cameraId, 
                 config, 
                 onScanSuccess, 
-                (errorMessage) => { /* 스캔 실패 로그 무시 */ }
+                (errorMessage) => { /* 무시 */ }
             ).then(() => {
                 isScanning = true;
-                // 미러링 상태 확인 후 재적용
                 updateMirrorStyle();
             }).catch(err => {
                 console.error("카메라 시작 실패", err);
             });
         }
 
-        // 3. 좌우 반전 토글
+        // 3. 좌우 반전 토글 및 저장
         function toggleMirror() {
             const reader = document.getElementById('reader');
-            reader.classList.toggle('mirrored');
+            const isMirrored = reader.classList.toggle('mirrored');
+            // [기억 기능] 반전 상태 저장
+            localStorage.setItem(STORAGE_KEY_MIRROR, isMirrored);
         }
         
-        // 스캐너 재시작 시에도 미러링 유지용
         function updateMirrorStyle() {
             const reader = document.getElementById('reader');
             if(reader.classList.contains('mirrored')) {
-                // 비디오 요소가 생성된 후 다시 확인
                 const video = document.querySelector('#reader video');
                 if(video) video.style.transform = "scaleX(-1)";
             }
         }
 
-        // 4. 스캔 성공 시 로직
+        // 4. 스캔 성공
         function onScanSuccess(decodedText, decodedResult) {
             if (!isScanning) return;
 
             const id = parseInt(decodedText);
             if (participants[id]) {
-                // 스캔 중지
                 isScanning = false;
                 html5QrCode.stop().then(() => {
                     showResultEffect(id, participants[id]);
@@ -261,7 +282,7 @@
             }
         }
 
-        // 5. 결과 연출 (매트릭스 효과)
+        // 5. 결과 연출
         function showResultEffect(id, name) {
             const overlay = document.getElementById('result-overlay');
             const logArea = document.getElementById('log-area');
@@ -272,8 +293,10 @@
 
             overlay.style.display = 'flex';
             logArea.innerHTML = '';
+            logArea.style.display = 'block'; // 재추첨 시 다시 보이게
             progBarContainer.style.display = 'block';
             finalResult.style.display = 'none';
+            progBar.style.width = '0%'; // 바 초기화
 
             const logs = [
                 `>> TARGET ID DETECTED: [ ${id} ]`,
@@ -300,13 +323,25 @@
                         winnerName.innerText = name;
                         finalResult.style.display = 'block';
                         
-                        // 화면 터치 시 리셋 이벤트
-                        overlay.onclick = () => window.location.reload();
+                        // [수정됨] 화면 터치 시 '새로고침' 하지 않고 '재시작' (설정 유지)
+                        overlay.onclick = resetGame;
                     }, 500);
                 }
             }, 400);
         }
+
+        // 6. [추가됨] 게임 재시작 (Soft Reset)
+        function resetGame() {
+            // 오버레이 숨김
+            const overlay = document.getElementById('result-overlay');
+            overlay.style.display = 'none';
+            overlay.onclick = null; // 이벤트 제거
+
+            // 즉시 카메라 재시작 (선택된 카메라 유지)
+            if (currentCameraId) {
+                startScanner(currentCameraId);
+            }
+        }
     </script>
 </body>
 </html>
-
