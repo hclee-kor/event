@@ -182,12 +182,8 @@
 
     <script>
         // ================= 데이터 설정 =================
-        const participants = {
-            1: "이혜정", 2: "황민주", 3: "안인경", 4: "최윤영", 5: "김근만",
-            6: "이선국", 7: "윤일석", 8: "송주현", 9: "김태오", 10: "이근호",
-            11: "임주현", 12: "최정환", 13: "임덕원", 14: "박윤한", 15: "심준영",
-            16: "이현철", 17: "강대희", 18: "현진남", 19: "이진우"
-        };
+        // 기존 하드코딩 데이터를 제거하고 빈 객체로 시작합니다.
+        let participants = {};
 
         // 전역 변수
         let html5QrCode;
@@ -199,7 +195,10 @@
         const STORAGE_KEY_MIRROR = 'luckyDraw_isMirrored';
 
         // 1. 초기화 및 설정 불러오기
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            // [변경됨] 외부 파일에서 명단 불러오기
+            await loadParticipantsData();
+
             html5QrCode = new Html5Qrcode("reader");
             
             const savedMirror = localStorage.getItem(STORAGE_KEY_MIRROR);
@@ -242,6 +241,25 @@
                 alert("카메라 권한을 허용해주세요.");
             });
         });
+
+        // [추가됨] 명단 파일 로드 함수
+        async function loadParticipantsData() {
+            try {
+                // 캐시 방지를 위해 시간값을 붙여서 항상 최신 파일을 가져옵니다.
+                const response = await fetch('./participants.json?t=' + new Date().getTime());
+                
+                if (!response.ok) {
+                    throw new Error('파일을 찾을 수 없습니다.');
+                }
+                
+                participants = await response.json();
+                console.log("명단 로드 완료:", participants);
+                
+            } catch (error) {
+                console.error("데이터 로드 실패:", error);
+                alert("참가자 명단 파일(participants.json)을 불러오지 못했습니다.\n같은 폴더에 파일이 있는지 확인해주세요.");
+            }
+        }
 
         // 2. 스캐너 시작 함수
         function startScanner(cameraId) {
@@ -314,6 +332,7 @@
             if (!isScanning) return;
 
             const id = parseInt(decodedText);
+            // participants 객체는 이제 외부 파일에서 로드된 데이터를 사용합니다.
             if (participants[id]) {
                 isScanning = false;
                 html5QrCode.stop().then(() => {
