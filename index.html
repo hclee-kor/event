@@ -358,20 +358,11 @@
             finalResult.style.display = 'none';
             progBar.style.width = '0%'; 
 
-            const logs = [
-                `>>>>>>>`,
-                `>>>>>>>`,
-                `>>>>>>>`,
-                `>>>>>>>`,
-                `>>>>>>>`
-            ];
-
             let step = 0;
-            const totalSteps = logs.length;
+            const totalSteps = 5;
             
             const interval = setInterval(() => {
                 if(step < totalSteps) {
-                    logArea.innerHTML += logs[step];
                     progBar.style.width = ((step + 1) / totalSteps * 100) + "%";
                     step++;
                 } else {
@@ -402,6 +393,7 @@
     </script>
 </body>
 </html>
+
 
 
 
