@@ -359,11 +359,11 @@
             progBar.style.width = '0%'; 
 
             const logs = [
-                `>> QR->당첨자 변환중...`,
-                `>> VERIFYING HASH KEY... OK`,
-                `>> DECRYPTING DATA STREAM...`,
-                `>> TARGET ID DETECTED: [ ${id} ]`,
-                `>> MATCH FOUND IN DATABASE.`
+                `...`,
+                `.....`,
+                `...`,
+                `......`,
+                `..`
             ];
 
             let step = 0;
@@ -371,7 +371,7 @@
             
             const interval = setInterval(() => {
                 if(step < totalSteps) {
-                    logArea.innerHTML += logs[step] + "<br>";
+                    logArea.innerHTML += logs[step];
                     progBar.style.width = ((step + 1) / totalSteps * 100) + "%";
                     step++;
                 } else {
@@ -402,4 +402,5 @@
     </script>
 </body>
 </html>
+
 
